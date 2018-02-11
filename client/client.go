@@ -15,7 +15,7 @@ import (
 type Client struct {
 	logger golog.ILogger
 
-	c *http.Client
+	client *http.Client
 }
 
 type Response struct {
@@ -26,15 +26,15 @@ type Response struct {
 }
 
 func NewClient(logger golog.ILogger) *Client {
-	this := new(Client)
+	c := new(Client)
 
-	this.logger = logger
-	if this.logger == nil {
-		this.logger = new(golog.NoopLogger)
+	c.logger = logger
+	if c.logger == nil {
+		c.logger = new(golog.NoopLogger)
 	}
 
-	this.c = new(http.Client)
-	this.c.Transport = &http.Transport{
+	c.client = new(http.Client)
+	c.client.Transport = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
 			Timeout:   30 * time.Second,
@@ -44,33 +44,33 @@ func NewClient(logger golog.ILogger) *Client {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	return this
+	return c
 }
 
-func (this *Client) SetTimeout(timeout time.Duration) *Client {
+func (c *Client) SetTimeout(timeout time.Duration) *Client {
 	if timeout != 0 {
-		this.c.Timeout = timeout
+		c.client.Timeout = timeout
 	}
 
-	return this
+	return c
 }
 
-func (this *Client) SetMaxIdleConnsPerHost(value int) *Client {
+func (c *Client) SetMaxIdleConnsPerHost(value int) *Client {
 	if value != 0 {
-		this.c.Transport.(*http.Transport).MaxIdleConnsPerHost = value
+		c.client.Transport.(*http.Transport).MaxIdleConnsPerHost = value
 	}
 
-	return this
+	return c
 }
 
-func (this *Client) Do(req *http.Request, retry int) (*Response, error) {
+func (c *Client) Do(req *http.Request, retry int) (*Response, error) {
 	start := time.Now()
-	resp, err := this.c.Do(req)
+	resp, err := c.client.Do(req)
 	t := time.Since(start)
 	if err != nil || resp.StatusCode != 200 {
 		for i := 0; i < retry; i++ {
 			start = time.Now()
-			resp, err = this.c.Do(req)
+			resp, err = c.client.Do(req)
 			t = time.Since(start)
 			if err == nil && resp.StatusCode == 200 {
 				break
@@ -89,11 +89,11 @@ func (this *Client) Do(req *http.Request, retry int) (*Response, error) {
 			msg = append(msg, []byte("StatusCode:"+strconv.Itoa(resp.StatusCode)))
 		}
 		msg = append(msg, []byte("ErrMsg:"+err.Error()))
-		this.logger.Error(bytes.Join(msg, []byte("\t")))
+		c.logger.Error(bytes.Join(msg, []byte("\t")))
 		return nil, err
 	}
 	msg = append(msg, []byte("StatusCode:"+strconv.Itoa(resp.StatusCode)))
-	this.logger.Info(bytes.Join(msg, []byte("\t")))
+	c.logger.Info(bytes.Join(msg, []byte("\t")))
 
 	contents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

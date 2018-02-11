@@ -19,17 +19,17 @@ type intValue struct {
 }
 
 func NewIntValue(p *int, required bool, errno int, msg string, cf CheckInt) *intValue {
-	this := &intValue{
+	i := &intValue{
 		baseValue: newBaseValue(required, errno, msg),
 
 		p:  p,
 		cf: cf,
 	}
 
-	return this
+	return i
 }
 
-func (this *intValue) Set(str string) error {
+func (i *intValue) Set(str string) error {
 	var v int = 0
 	var e error = nil
 
@@ -41,15 +41,15 @@ func (this *intValue) Set(str string) error {
 		return e
 	}
 
-	*(this.p) = v
+	*(i.p) = v
 
 	return nil
 }
 
-func (this *intValue) Check() bool {
-	if this.cf == nil {
+func (i *intValue) Check() bool {
+	if i.cf == nil {
 		return true
 	}
 
-	return this.cf(*(this.p))
+	return i.cf(*(i.p))
 }

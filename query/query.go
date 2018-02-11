@@ -13,52 +13,52 @@ type QuerySet struct {
 }
 
 func NewQuerySet() *QuerySet {
-	this := &QuerySet{
+	q := &QuerySet{
 		formal: make(map[string]Value),
 		exists: make(map[string]bool),
 	}
 
-	return this
+	return q
 }
 
-func (this *QuerySet) ExistsInfo() map[string]bool {
-	return this.exists
+func (q *QuerySet) ExistsInfo() map[string]bool {
+	return q.exists
 }
 
-func (this *QuerySet) Exist(name string) bool {
-	if v, ok := this.exists[name]; ok && v {
+func (q *QuerySet) Exist(name string) bool {
+	if v, ok := q.exists[name]; ok && v {
 		return true
 	}
 
 	return false
 }
 
-func (this *QuerySet) Var(name string, v Value) *QuerySet {
-	this.formal[name] = v
+func (q *QuerySet) Var(name string, v Value) *QuerySet {
+	q.formal[name] = v
 
-	return this
+	return q
 }
 
-func (this *QuerySet) IntVar(p *int, name string, required bool, errno int, msg string, cf CheckInt) *QuerySet {
-	this.Var(name, NewIntValue(p, required, errno, msg, cf))
+func (q *QuerySet) IntVar(p *int, name string, required bool, errno int, msg string, cf CheckInt) *QuerySet {
+	q.Var(name, NewIntValue(p, required, errno, msg, cf))
 
-	return this
+	return q
 }
 
-func (this *QuerySet) StringVar(p *string, name string, required bool, errno int, msg string, cf CheckString) *QuerySet {
-	this.Var(name, NewStringValue(p, required, errno, msg, cf))
+func (q *QuerySet) StringVar(p *string, name string, required bool, errno int, msg string, cf CheckString) *QuerySet {
+	q.Var(name, NewStringValue(p, required, errno, msg, cf))
 
-	return this
+	return q
 }
 
-func (this *QuerySet) Int64Var(p *int64, name string, required bool, errno int, msg string, cf CheckInt64) *QuerySet {
-	this.Var(name, NewInt64Value(p, required, errno, msg, cf))
+func (q *QuerySet) Int64Var(p *int64, name string, required bool, errno int, msg string, cf CheckInt64) *QuerySet {
+	q.Var(name, NewInt64Value(p, required, errno, msg, cf))
 
-	return this
+	return q
 }
 
-func (this *QuerySet) Parse(actual url.Values) *exception.Exception {
-	for name, v := range this.formal {
+func (q *QuerySet) Parse(actual url.Values) *exception.Exception {
+	for name, v := range q.formal {
 		if len(actual[name]) == 0 {
 			if v.Required() {
 				return v.Error()
@@ -66,7 +66,7 @@ func (this *QuerySet) Parse(actual url.Values) *exception.Exception {
 			continue
 		}
 
-		this.exists[name] = true
+		q.exists[name] = true
 		str := strings.TrimSpace(actual.Get(name))
 		err := v.Set(str)
 		if err != nil {

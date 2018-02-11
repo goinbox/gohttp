@@ -25,10 +25,10 @@ func newBaseValue(required bool, errno int, msg string) *baseValue {
 	}
 }
 
-func (this *baseValue) Required() bool {
-	return this.required
+func (b *baseValue) Required() bool {
+	return b.required
 }
 
-func (this *baseValue) Error() *exception.Exception {
-	return exception.New(this.errno, this.msg)
+func (b *baseValue) Error() *exception.Exception {
+	return exception.New(b.errno, b.msg)
 }

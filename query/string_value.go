@@ -17,26 +17,26 @@ type stringValue struct {
 }
 
 func NewStringValue(p *string, required bool, errno int, msg string, cf CheckString) *stringValue {
-	this := &stringValue{
+	s := &stringValue{
 		baseValue: newBaseValue(required, errno, msg),
 
 		p:  p,
 		cf: cf,
 	}
 
-	return this
+	return s
 }
 
-func (this *stringValue) Set(str string) error {
-	*(this.p) = str
+func (s *stringValue) Set(str string) error {
+	*(s.p) = str
 
 	return nil
 }
 
-func (this *stringValue) Check() bool {
-	if this.cf == nil {
+func (s *stringValue) Check() bool {
+	if s.cf == nil {
 		return true
 	}
 
-	return this.cf(*(this.p))
+	return s.cf(*(s.p))
 }

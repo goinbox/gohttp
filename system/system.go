@@ -18,8 +18,8 @@ func NewSystem(r router.Router) *System {
 	}
 }
 
-func (this *System) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	route := this.router.FindRoute(r.URL.Path)
+func (s *System) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	route := s.router.FindRoute(r.URL.Path)
 	if route == nil {
 		http.NotFound(w, r)
 		return
@@ -41,11 +41,11 @@ func (this *System) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	context.BeforeAction()
-	route.ActionValue.Call(this.makeArgsValues(context, route.Args))
+	route.ActionValue.Call(s.makeArgsValues(context, route.Args))
 	context.AfterAction()
 }
 
-func (this *System) makeArgsValues(context controller.ActionContext, args []string) []reflect.Value {
+func (s *System) makeArgsValues(context controller.ActionContext, args []string) []reflect.Value {
 	argsValues := make([]reflect.Value, len(args)+1)
 	argsValues[0] = reflect.ValueOf(context)
 	for i, arg := range args {

@@ -58,33 +58,33 @@ func NewSimpleRouter() *SimpleRouter {
 	}
 }
 
-func (this *SimpleRouter) SetDefaultControllerName(name string) *SimpleRouter {
-	this.defaultControllerName = name
+func (s *SimpleRouter) SetDefaultControllerName(name string) *SimpleRouter {
+	s.defaultControllerName = name
 
-	return this
+	return s
 }
 
-func (this *SimpleRouter) SetDefaultActionName(name string) *SimpleRouter {
-	this.defaultActionName = name
+func (s *SimpleRouter) SetDefaultActionName(name string) *SimpleRouter {
+	s.defaultActionName = name
 
-	return this
+	return s
 }
 
-func (this *SimpleRouter) MapRouteItems(cls ...controller.Controller) {
+func (s *SimpleRouter) MapRouteItems(cls ...controller.Controller) {
 	for _, cl := range cls {
-		this.mapRouteItem(cl)
+		s.mapRouteItem(cl)
 	}
 }
 
-func (this *SimpleRouter) mapRouteItem(cl controller.Controller) {
-	ri := this.getRouteItem(cl)
+func (s *SimpleRouter) mapRouteItem(cl controller.Controller) {
+	ri := s.getRouteItem(cl)
 	if ri == nil {
 		return
 	}
 
 	for i := 0; i < ri.clv.NumMethod(); i++ {
 		am := ri.clt.Method(i)
-		actionName := this.getActionName(am.Name)
+		actionName := s.getActionName(am.Name)
 		if actionName == "" {
 			continue
 		}
@@ -92,7 +92,7 @@ func (this *SimpleRouter) mapRouteItem(cl controller.Controller) {
 		if ok {
 			continue
 		}
-		actionArgsNum := this.getActionArgsNum(am, ri.clt)
+		actionArgsNum := s.getActionArgsNum(am, ri.clt)
 		if actionArgsNum == -1 {
 			continue
 		}
@@ -105,14 +105,14 @@ func (this *SimpleRouter) mapRouteItem(cl controller.Controller) {
 	}
 }
 
-func (this *SimpleRouter) DefineRouteItem(pattern string, cl controller.Controller, actionName string) {
+func (s *SimpleRouter) DefineRouteItem(pattern string, cl controller.Controller, actionName string) {
 	methodName := strings.Title(actionName) + "Action"
 	actionName = strings.ToLower(methodName)
 	if actionName == "" {
 		return
 	}
 
-	ri := this.getRouteItem(cl)
+	ri := s.getRouteItem(cl)
 	if ri == nil {
 		return
 	}
@@ -121,7 +121,7 @@ func (this *SimpleRouter) DefineRouteItem(pattern string, cl controller.Controll
 	if !ok {
 		return
 	}
-	actionArgsNum := this.getActionArgsNum(am, ri.clt)
+	actionArgsNum := s.getActionArgsNum(am, ri.clt)
 	if actionArgsNum == -1 {
 		return
 	}
@@ -132,7 +132,7 @@ func (this *SimpleRouter) DefineRouteItem(pattern string, cl controller.Controll
 		value:   &av,
 	}
 
-	this.routeDefinedList = append(this.routeDefinedList, &routeDefined{
+	s.routeDefinedList = append(s.routeDefinedList, &routeDefined{
 		regex: regexp.MustCompile(pattern),
 
 		controllerName: strings.ToLower(ri.controllerName),
@@ -140,16 +140,16 @@ func (this *SimpleRouter) DefineRouteItem(pattern string, cl controller.Controll
 	})
 }
 
-func (this *SimpleRouter) getRouteItem(cl controller.Controller) *routeItem {
+func (s *SimpleRouter) getRouteItem(cl controller.Controller) *routeItem {
 	v := reflect.ValueOf(cl)
 	t := v.Type()
 
-	controllerName := this.getControllerName(t.String())
+	controllerName := s.getControllerName(t.String())
 	if controllerName == "" {
 		return nil
 	}
 
-	ri, ok := this.routeTable[controllerName]
+	ri, ok := s.routeTable[controllerName]
 	if !ok {
 		ri = &routeItem{
 			cl:  cl,
@@ -159,14 +159,14 @@ func (this *SimpleRouter) getRouteItem(cl controller.Controller) *routeItem {
 			controllerName: controllerName,
 			actionMap:      make(map[string]*actionItem),
 		}
-		this.routeTable[controllerName] = ri
+		s.routeTable[controllerName] = ri
 	}
 
 	return ri
 }
 
-func (this *SimpleRouter) getControllerName(typeString string) string {
-	matches := this.cregex.FindStringSubmatch(typeString)
+func (s *SimpleRouter) getControllerName(typeString string) string {
+	matches := s.cregex.FindStringSubmatch(typeString)
 	if matches == nil {
 		return ""
 	}
@@ -174,8 +174,8 @@ func (this *SimpleRouter) getControllerName(typeString string) string {
 	return strings.ToLower(matches[1])
 }
 
-func (this *SimpleRouter) getActionName(methodName string) string {
-	matches := this.aregex.FindStringSubmatch(methodName)
+func (s *SimpleRouter) getActionName(methodName string) string {
+	matches := s.aregex.FindStringSubmatch(methodName)
 	if matches == nil {
 		return ""
 	}
@@ -188,7 +188,7 @@ func (this *SimpleRouter) getActionName(methodName string) string {
 	return ""
 }
 
-func (this *SimpleRouter) getActionArgsNum(actionMethod reflect.Method, controllerType reflect.Type) int {
+func (s *SimpleRouter) getActionArgsNum(actionMethod reflect.Method, controllerType reflect.Type) int {
 	n := actionMethod.Type.NumIn()
 	if n < 2 {
 		return -1
@@ -211,18 +211,18 @@ func (this *SimpleRouter) getActionArgsNum(actionMethod reflect.Method, controll
 		}
 	}
 
-	return n - 2 //delete this and context
+	return n - 2 //delete s and context
 }
 
-func (this *SimpleRouter) FindRoute(path string) *Route {
+func (s *SimpleRouter) FindRoute(path string) *Route {
 	path = strings.ToLower(path)
 
-	rg := this.findRouteGuideByDefined(path)
+	rg := s.findRouteGuideByDefined(path)
 	if rg == nil {
-		rg = this.findRouteGuideByGeneral(path)
+		rg = s.findRouteGuideByGeneral(path)
 	}
 
-	ri, ok := this.routeTable[rg.controllerName]
+	ri, ok := s.routeTable[rg.controllerName]
 	if !ok {
 		return nil
 	}
@@ -235,12 +235,12 @@ func (this *SimpleRouter) FindRoute(path string) *Route {
 	return &Route{
 		Cl:          ri.cl,
 		ActionValue: ai.value,
-		Args:        this.makeActionArgs(rg.actionArgs, ai.argsNum),
+		Args:        s.makeActionArgs(rg.actionArgs, ai.argsNum),
 	}
 }
 
-func (this *SimpleRouter) findRouteGuideByDefined(path string) *routeGuide {
-	for _, rd := range this.routeDefinedList {
+func (s *SimpleRouter) findRouteGuideByDefined(path string) *routeGuide {
+	for _, rd := range s.routeDefinedList {
 		matches := rd.regex.FindStringSubmatch(path)
 		if matches == nil {
 			continue
@@ -256,7 +256,7 @@ func (this *SimpleRouter) findRouteGuideByDefined(path string) *routeGuide {
 	return nil
 }
 
-func (this *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
+func (s *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
 	rg := new(routeGuide)
 
 	path = strings.Trim(path, "/")
@@ -264,8 +264,8 @@ func (this *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
 
 	sl[0] = strings.TrimSpace(sl[0])
 	if sl[0] == "" {
-		rg.controllerName = this.defaultControllerName
-		rg.actionName = this.defaultActionName
+		rg.controllerName = s.defaultControllerName
+		rg.actionName = s.defaultActionName
 	} else {
 		rg.controllerName = sl[0]
 		if len(sl) > 1 {
@@ -273,17 +273,17 @@ func (this *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
 			if sl[1] != "" {
 				rg.actionName = sl[1]
 			} else {
-				rg.actionName = this.defaultActionName
+				rg.actionName = s.defaultActionName
 			}
 		} else {
-			rg.actionName = this.defaultActionName
+			rg.actionName = s.defaultActionName
 		}
 	}
 
 	return rg
 }
 
-func (this *SimpleRouter) makeActionArgs(args []string, validArgsNum int) []string {
+func (s *SimpleRouter) makeActionArgs(args []string, validArgsNum int) []string {
 	rgArgsNum := len(args)
 	missArgsNum := validArgsNum - rgArgsNum
 	switch {
