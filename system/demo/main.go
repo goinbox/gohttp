@@ -39,6 +39,10 @@ func (this *BaseActionContext) ResponseBody() []byte {
 	return this.RespBody
 }
 
+func (this *BaseActionContext) SetResponseBody(body []byte) {
+	this.RespBody = body
+}
+
 func (this *BaseActionContext) BeforeAction() {
 	this.RespBody = append(this.RespBody, []byte(" index before ")...)
 }
@@ -66,7 +70,7 @@ func (this *IndexController) IndexAction(context *BaseActionContext) {
 }
 
 func (this *IndexController) RedirectAction(context *BaseActionContext) {
-	system.Redirect302("https://github.com/Andals/gobox")
+	system.Redirect302("https://github.com/goinbox")
 }
 
 type DemoActionContext struct {

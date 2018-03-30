@@ -9,6 +9,7 @@ type ActionContext interface {
 	ResponseWriter() http.ResponseWriter
 
 	ResponseBody() []byte
+	SetResponseBody(body []byte)
 
 	BeforeAction()
 	AfterAction()
