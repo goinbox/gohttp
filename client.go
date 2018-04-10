@@ -1,12 +1,14 @@
-package client
+package gohttp
 
 import (
 	"github.com/goinbox/golog"
 
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -107,16 +109,12 @@ func (c *Client) Do(req *http.Request, retry int) (*Response, error) {
 	}, nil
 }
 
-func NewRequestForGet(url string, ip string, extHeaders map[string]string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func NewRequest(method string, url string, body []byte, ip string, extHeaders map[string]string) (*http.Request, error) {
+	req, err := http.NewRequest("PUT", url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 
-	return setRequestCommon(req, ip, extHeaders), nil
-}
-
-func setRequestCommon(req *http.Request, ip string, extHeaders map[string]string) *http.Request {
 	req.Host = req.URL.Host
 
 	if ip != "" {
@@ -131,5 +129,14 @@ func setRequestCommon(req *http.Request, ip string, extHeaders map[string]string
 		}
 	}
 
-	return req
+	return req, nil
+}
+
+func MakeRequestBodyUrlEncoded(params map[string]interface{}) []byte {
+	values := url.Values{}
+	for key, value := range params {
+		values.Add(key, fmt.Sprint(value))
+	}
+
+	return []byte(values.Encode())
 }
