@@ -21,6 +21,16 @@ type Client struct {
 	client *http.Client
 }
 
+type Request struct {
+	Method     string
+	Url        string
+	Body       []byte
+	Ip         string
+	ExtHeaders map[string]string
+
+	*http.Request
+}
+
 type Response struct {
 	T        time.Duration
 	Contents []byte
@@ -54,14 +64,15 @@ func NewClient(config *Config, logger golog.ILogger) *Client {
 	return c
 }
 
-func (c *Client) Do(req *http.Request, retry int) (*Response, error) {
+func (c *Client) Do(req *Request, retry int) (*Response, error) {
 	start := time.Now()
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req.Request)
 	t := time.Since(start)
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil {
 		for i := 0; i < retry; i++ {
+			req, _ = NewRequest(req.Method, req.Url, req.Body, req.Ip, req.ExtHeaders)
 			start = time.Now()
-			resp, err = c.client.Do(req)
+			resp, err = c.client.Do(req.Request)
 			t = time.Since(start)
 			if err == nil && resp.StatusCode == 200 {
 				break
@@ -98,7 +109,7 @@ func (c *Client) Do(req *http.Request, retry int) (*Response, error) {
 	}, nil
 }
 
-func NewRequest(method string, url string, body []byte, ip string, extHeaders map[string]string) (*http.Request, error) {
+func NewRequest(method string, url string, body []byte, ip string, extHeaders map[string]string) (*Request, error) {
 	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -118,7 +129,15 @@ func NewRequest(method string, url string, body []byte, ip string, extHeaders ma
 		}
 	}
 
-	return req, nil
+	return &Request{
+		Method:     method,
+		Url:        url,
+		Body:       body,
+		Ip:         ip,
+		ExtHeaders: extHeaders,
+
+		Request: req,
+	}, nil
 }
 
 func MakeRequestBodyUrlEncoded(params map[string]interface{}) []byte {
