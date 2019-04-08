@@ -36,7 +36,7 @@ func TestClientPost(t *testing.T) {
 		"b": "bb",
 		"c": "测试post",
 	}
-	req, _ := NewRequest(http.MethodPost, "http://www.vmu16.com/test.php", MakeRequestBodyUrlEncoded(params), "127.0.0.1", extHeaders)
+	req, _ := NewRequest(http.MethodPost, "http://www.vmubt.com/test.php", MakeRequestBodyUrlEncoded(params), "127.0.0.1", extHeaders)
 
 	resp, err := client.Do(req, 1)
 	if err != nil {
