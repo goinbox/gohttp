@@ -121,7 +121,7 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 func (c *Client) fmtLog(msg []byte) []byte {
 	return gomisc.AppendBytes(
 		c.traceId, []byte("\t"),
-		[]byte("[httpclient]\t"),
+		[]byte("[HttpClient]\t"),
 		msg,
 	)
 }
