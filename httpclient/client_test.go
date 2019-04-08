@@ -14,7 +14,7 @@ func TestClientGet(t *testing.T) {
 		"GO-CLIENT-1": "gobox-httpclient-1",
 		"GO-CLIENT-2": "gobox-httpclient-2",
 	}
-	req, _ := NewRequest(http.MethodGet, "http://www.vmu16.com/test.php?a=1&b=2", nil, "127.0.0.1", extHeaders)
+	req, _ := NewRequest(http.MethodGet, "http://www.vmubt.com/test.php?a=1&b=2", nil, "127.0.0.1", extHeaders)
 
 	resp, err := client.Do(req, 1)
 	if err != nil {
@@ -47,9 +47,8 @@ func TestClientPost(t *testing.T) {
 }
 
 func getClient() *Client {
-	path := "/tmp/test_http_client.log"
-	w, _ := golog.NewFileWriter(path)
-	logger, _ := golog.NewSimpleLogger(w, golog.LEVEL_INFO, golog.NewSimpleFormater())
+	w := golog.NewConsoleWriter()
+	logger := golog.NewSimpleLogger(w, golog.NewSimpleFormater())
 
 	config := NewConfig()
 	config.Timeout = time.Second * 1

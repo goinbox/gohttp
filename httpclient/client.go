@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"github.com/goinbox/golog"
+	"github.com/goinbox/gomisc"
 
 	"bytes"
 	"fmt"
@@ -15,8 +16,9 @@ import (
 )
 
 type Client struct {
-	config *Config
-	logger golog.ILogger
+	config  *Config
+	logger  golog.ILogger
+	traceId []byte
 
 	client *http.Client
 }
@@ -40,7 +42,8 @@ type Response struct {
 
 func NewClient(config *Config, logger golog.ILogger) *Client {
 	c := &Client{
-		config: config,
+		config:  config,
+		traceId: []byte("-"),
 	}
 
 	if logger == nil {
@@ -60,6 +63,12 @@ func NewClient(config *Config, logger golog.ILogger) *Client {
 			}).Dial,
 		},
 	}
+
+	return c
+}
+
+func (c *Client) SetTraceId(traceId []byte) *Client {
+	c.traceId = traceId
 
 	return c
 }
@@ -91,11 +100,11 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 			msg = append(msg, []byte("StatusCode:"+strconv.Itoa(resp.StatusCode)))
 		}
 		msg = append(msg, []byte("ErrMsg:"+err.Error()))
-		c.logger.Error(bytes.Join(msg, []byte("\t")))
+		c.logger.Error(c.fmtLog(bytes.Join(msg, []byte("\t"))))
 		return nil, err
 	}
 	msg = append(msg, []byte("StatusCode:"+strconv.Itoa(resp.StatusCode)))
-	c.logger.Log(c.config.LogLevel, bytes.Join(msg, []byte("\t")))
+	_ = c.logger.Log(c.config.LogLevel, c.fmtLog(bytes.Join(msg, []byte("\t"))))
 
 	contents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -107,6 +116,14 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 		Contents: contents,
 		Response: resp,
 	}, nil
+}
+
+func (c *Client) fmtLog(msg []byte) []byte {
+	return gomisc.AppendBytes(
+		[]byte("[httpclient]\t"),
+		c.traceId, []byte("\t"),
+		msg,
+	)
 }
 
 func NewRequest(method string, url string, body []byte, ip string, extHeaders map[string]string) (*Request, error) {
