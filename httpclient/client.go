@@ -57,10 +57,14 @@ func NewClient(config *Config, logger golog.ILogger) *Client {
 
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
+			DialContext: (&net.Dialer{
 				Timeout:   config.Timeout,
 				KeepAlive: config.KeepAliveTime,
-			}).Dial,
+			}).DialContext,
+			DisableKeepAlives:   config.DisableKeepAlives,
+			MaxIdleConns:        config.MaxIdleConns,
+			MaxIdleConnsPerHost: config.MaxIdleConnsPerHost,
+			IdleConnTimeout:     config.IdleConnTimeout,
 		},
 	}
 
