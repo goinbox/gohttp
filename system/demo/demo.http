@@ -1,0 +1,23 @@
+### index
+
+GET http://127.0.0.1:8010
+Accept: text/plain
+
+### redirect
+
+GET http://127.0.0.1:8010/index/redirect
+Accept: text/plain
+
+### demo
+
+GET http://127.0.0.1:8010/demo/demo
+Accept: text/plain
+
+### demo/get
+
+### define route
+
+GET http://127.0.0.1:8010/g/123
+Accept: text/plain
+
+###
