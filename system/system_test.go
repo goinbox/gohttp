@@ -1,22 +1,23 @@
-package main
+package system
 
 import (
-	"net/http"
-
 	"github.com/goinbox/gohttp/controller"
 	"github.com/goinbox/gohttp/gracehttp"
 	"github.com/goinbox/gohttp/router"
-	"github.com/goinbox/gohttp/system"
+
+	"net/http"
+	"testing"
 )
 
-func main() {
+func TestSystem(t *testing.T) {
 	dcl := new(DemoController)
 	r := router.NewSimpleRouter()
 
 	r.DefineRouteItem("^/g/([0-9]+)$", dcl, "get")
 	r.MapRouteItems(new(IndexController), dcl)
+	r.SetDefaultRoute("index", "default")
 
-	sys := system.NewSystem(r)
+	sys := NewSystem(r)
 
 	gracehttp.ListenAndServe(":8010", sys)
 }
@@ -51,8 +52,12 @@ func (ic *IndexController) IndexAction(context *BaseActionContext) {
 }
 
 func (ic *IndexController) RedirectAction(context *BaseActionContext) {
-	print("here")
-	system.Redirect302("https://github.com/goinbox")
+	println("here")
+	Redirect302("https://github.com/goinbox")
+}
+
+func (ic *IndexController) DefaultAction(context *BaseActionContext) {
+	println("default route")
 }
 
 type DemoActionContext struct {

@@ -36,8 +36,10 @@ type routeGuide struct {
 }
 
 type SimpleRouter struct {
-	defaultControllerName string
-	defaultActionName     string
+	emptyControllerName string
+	emptyActionName     string
+
+	defaultRouteGuide *routeGuide
 
 	cregex *regexp.Regexp
 	aregex *regexp.Regexp
@@ -48,8 +50,8 @@ type SimpleRouter struct {
 
 func NewSimpleRouter() *SimpleRouter {
 	return &SimpleRouter{
-		defaultActionName:     "index",
-		defaultControllerName: "index",
+		emptyActionName:     "index",
+		emptyControllerName: "index",
 
 		cregex: regexp.MustCompile("([A-Z][A-Za-z0-9_]*)Controller$"),
 		aregex: regexp.MustCompile("^([A-Z][A-Za-z0-9_]*)Action$"),
@@ -58,14 +60,23 @@ func NewSimpleRouter() *SimpleRouter {
 	}
 }
 
-func (s *SimpleRouter) SetDefaultControllerName(name string) *SimpleRouter {
-	s.defaultControllerName = name
+func (s *SimpleRouter) SetEmptyControllerName(name string) *SimpleRouter {
+	s.emptyControllerName = name
 
 	return s
 }
 
-func (s *SimpleRouter) SetDefaultActionName(name string) *SimpleRouter {
-	s.defaultActionName = name
+func (s *SimpleRouter) SetEmptyActionName(name string) *SimpleRouter {
+	s.emptyActionName = name
+
+	return s
+}
+
+func (s *SimpleRouter) SetDefaultRoute(controllerName, actionName string) *SimpleRouter {
+	s.defaultRouteGuide = &routeGuide{
+		controllerName: controllerName,
+		actionName:     actionName,
+	}
 
 	return s
 }
@@ -264,8 +275,8 @@ func (s *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
 
 	sl[0] = strings.TrimSpace(sl[0])
 	if sl[0] == "" {
-		rg.controllerName = s.defaultControllerName
-		rg.actionName = s.defaultActionName
+		rg.controllerName = s.emptyControllerName
+		rg.actionName = s.emptyActionName
 	} else {
 		rg.controllerName = sl[0]
 		if len(sl) > 1 {
@@ -273,11 +284,15 @@ func (s *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
 			if sl[1] != "" {
 				rg.actionName = sl[1]
 			} else {
-				rg.actionName = s.defaultActionName
+				rg.actionName = s.emptyActionName
 			}
 		} else {
-			rg.actionName = s.defaultActionName
+			rg.actionName = s.emptyActionName
 		}
+	}
+
+	if s.checkIfUseDefaultRoute(rg) {
+		return s.defaultRouteGuide
 	}
 
 	return rg
@@ -297,4 +312,22 @@ func (s *SimpleRouter) makeActionArgs(args []string, validArgsNum int) []string 
 	}
 
 	return args
+}
+
+func (s *SimpleRouter) checkIfUseDefaultRoute(rg *routeGuide) bool {
+	if s.defaultRouteGuide == nil {
+		return false
+	}
+
+	ri, ok := s.routeTable[rg.controllerName]
+	if !ok {
+		return true
+	}
+
+	_, ok = ri.actionMap[rg.actionName]
+	if !ok {
+		return true
+	}
+
+	return false
 }
