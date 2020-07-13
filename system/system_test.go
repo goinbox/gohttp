@@ -19,7 +19,7 @@ func TestSystem(t *testing.T) {
 
 	sys := NewSystem(r)
 
-	gracehttp.ListenAndServe(":8010", sys)
+	_ = gracehttp.ListenAndServe(":8010", sys)
 }
 
 type BaseActionContext struct {

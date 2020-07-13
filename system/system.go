@@ -8,18 +8,32 @@ import (
 	"reflect"
 )
 
+type RoutePathFunc func(r *http.Request) string
+
 type System struct {
 	router router.Router
+
+	rpf RoutePathFunc
 }
 
 func NewSystem(r router.Router) *System {
-	return &System{
+	s := &System{
 		router: r,
 	}
+
+	s.rpf = s.routePath
+
+	return s
+}
+
+func (s *System) SetRoutePathFunc(rpf RoutePathFunc) *System {
+	s.rpf = rpf
+
+	return s
 }
 
 func (s *System) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	route := s.router.FindRoute(r.URL.Path)
+	route := s.router.FindRoute(s.rpf(r))
 	if route == nil {
 		http.NotFound(w, r)
 		return
@@ -43,6 +57,10 @@ func (s *System) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	context.BeforeAction()
 	route.ActionValue.Call(s.makeArgsValues(context, route.Args))
 	context.AfterAction()
+}
+
+func (s *System) routePath(r *http.Request) string {
+	return r.URL.Path
 }
 
 func (s *System) makeArgsValues(context controller.ActionContext, args []string) []reflect.Value {
