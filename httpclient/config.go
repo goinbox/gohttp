@@ -29,7 +29,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		LogLevel: golog.LEVEL_DEBUG,
+		LogLevel: golog.LevelDebug,
 
 		Timeout:           DEFAULT_TIMEOUT,
 		KeepAliveTime:     DEFAULT_KEEPALIVE_TIME,
