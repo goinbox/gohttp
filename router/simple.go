@@ -29,23 +29,27 @@ type routeDefined struct {
 	actionName     string
 }
 
-type routeGuide struct {
+type RouteGuide struct {
 	controllerName string
 	actionName     string
 	actionArgs     []string
 }
 
+type ParseRoutePathFunc func(path string) *RouteGuide
+
 type SimpleRouter struct {
 	emptyControllerName string
 	emptyActionName     string
 
-	defaultRouteGuide *routeGuide
+	defaultRouteGuide *RouteGuide
 
 	cregex *regexp.Regexp
 	aregex *regexp.Regexp
 
 	routeDefinedList []*routeDefined
 	routeTable       map[string]*routeItem
+
+	prpf ParseRoutePathFunc
 }
 
 func NewSimpleRouter() *SimpleRouter {
@@ -73,10 +77,16 @@ func (s *SimpleRouter) SetEmptyActionName(name string) *SimpleRouter {
 }
 
 func (s *SimpleRouter) SetDefaultRoute(controllerName, actionName string) *SimpleRouter {
-	s.defaultRouteGuide = &routeGuide{
+	s.defaultRouteGuide = &RouteGuide{
 		controllerName: controllerName,
 		actionName:     actionName,
 	}
+
+	return s
+}
+
+func (s *SimpleRouter) SetParseRoutePathFunc(prpf ParseRoutePathFunc) *SimpleRouter {
+	s.prpf = prpf
 
 	return s
 }
@@ -233,6 +243,10 @@ func (s *SimpleRouter) FindRoute(path string) *Route {
 		rg = s.findRouteGuideByGeneral(path)
 	}
 
+	if rg == nil {
+		return nil
+	}
+
 	ri, ok := s.routeTable[rg.controllerName]
 	if !ok {
 		return nil
@@ -250,14 +264,14 @@ func (s *SimpleRouter) FindRoute(path string) *Route {
 	}
 }
 
-func (s *SimpleRouter) findRouteGuideByDefined(path string) *routeGuide {
+func (s *SimpleRouter) findRouteGuideByDefined(path string) *RouteGuide {
 	for _, rd := range s.routeDefinedList {
 		matches := rd.regex.FindStringSubmatch(path)
 		if matches == nil {
 			continue
 		}
 
-		return &routeGuide{
+		return &RouteGuide{
 			controllerName: rd.controllerName,
 			actionName:     rd.actionName,
 			actionArgs:     matches[1:],
@@ -267,8 +281,21 @@ func (s *SimpleRouter) findRouteGuideByDefined(path string) *routeGuide {
 	return nil
 }
 
-func (s *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
-	rg := new(routeGuide)
+func (s *SimpleRouter) findRouteGuideByGeneral(path string) *RouteGuide {
+	rg := s.prpf(path)
+	if rg == nil {
+		return nil
+	}
+
+	if s.checkIfUseDefaultRoute(rg) {
+		return s.defaultRouteGuide
+	}
+
+	return rg
+}
+
+func (s *SimpleRouter) parseRoutePathFunc(path string) *RouteGuide {
+	rg := new(RouteGuide)
 
 	path = strings.Trim(path, "/")
 	sl := strings.Split(path, "/")
@@ -291,10 +318,6 @@ func (s *SimpleRouter) findRouteGuideByGeneral(path string) *routeGuide {
 		}
 	}
 
-	if s.checkIfUseDefaultRoute(rg) {
-		return s.defaultRouteGuide
-	}
-
 	return rg
 }
 
@@ -314,7 +337,7 @@ func (s *SimpleRouter) makeActionArgs(args []string, validArgsNum int) []string 
 	return args
 }
 
-func (s *SimpleRouter) checkIfUseDefaultRoute(rg *routeGuide) bool {
+func (s *SimpleRouter) checkIfUseDefaultRoute(rg *RouteGuide) bool {
 	if s.defaultRouteGuide == nil {
 		return false
 	}
