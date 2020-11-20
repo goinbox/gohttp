@@ -53,7 +53,7 @@ type SimpleRouter struct {
 }
 
 func NewSimpleRouter() *SimpleRouter {
-	return &SimpleRouter{
+	s := &SimpleRouter{
 		emptyActionName:     "index",
 		emptyControllerName: "index",
 
@@ -62,6 +62,10 @@ func NewSimpleRouter() *SimpleRouter {
 
 		routeTable: make(map[string]*routeItem),
 	}
+
+	s.prpf = s.parseRoutePath
+
+	return s
 }
 
 func (s *SimpleRouter) SetEmptyControllerName(name string) *SimpleRouter {
@@ -294,7 +298,7 @@ func (s *SimpleRouter) findRouteGuideByGeneral(path string) *RouteGuide {
 	return rg
 }
 
-func (s *SimpleRouter) parseRoutePathFunc(path string) *RouteGuide {
+func (s *SimpleRouter) parseRoutePath(path string) *RouteGuide {
 	rg := new(RouteGuide)
 
 	path = strings.Trim(path, "/")
