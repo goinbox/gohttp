@@ -30,9 +30,9 @@ type routeDefined struct {
 }
 
 type RouteGuide struct {
-	controllerName string
-	actionName     string
-	actionArgs     []string
+	ControllerName string
+	ActionName     string
+	ActionArgs     []string
 }
 
 type ParseRoutePathFunc func(path string) *RouteGuide
@@ -82,8 +82,8 @@ func (s *SimpleRouter) SetEmptyActionName(name string) *SimpleRouter {
 
 func (s *SimpleRouter) SetDefaultRoute(controllerName, actionName string) *SimpleRouter {
 	s.defaultRouteGuide = &RouteGuide{
-		controllerName: controllerName,
-		actionName:     actionName,
+		ControllerName: controllerName,
+		ActionName:     actionName,
 	}
 
 	return s
@@ -251,12 +251,12 @@ func (s *SimpleRouter) FindRoute(path string) *Route {
 		return nil
 	}
 
-	ri, ok := s.routeTable[rg.controllerName]
+	ri, ok := s.routeTable[rg.ControllerName]
 	if !ok {
 		return nil
 	}
 
-	ai, ok := ri.actionMap[rg.actionName]
+	ai, ok := ri.actionMap[rg.ActionName]
 	if !ok {
 		return nil
 	}
@@ -264,7 +264,7 @@ func (s *SimpleRouter) FindRoute(path string) *Route {
 	return &Route{
 		Cl:          ri.cl,
 		ActionValue: ai.value,
-		Args:        s.makeActionArgs(rg.actionArgs, ai.argsNum),
+		Args:        s.makeActionArgs(rg.ActionArgs, ai.argsNum),
 	}
 }
 
@@ -276,9 +276,9 @@ func (s *SimpleRouter) findRouteGuideByDefined(path string) *RouteGuide {
 		}
 
 		return &RouteGuide{
-			controllerName: rd.controllerName,
-			actionName:     rd.actionName,
-			actionArgs:     matches[1:],
+			ControllerName: rd.controllerName,
+			ActionName:     rd.actionName,
+			ActionArgs:     matches[1:],
 		}
 	}
 
@@ -306,19 +306,19 @@ func (s *SimpleRouter) parseRoutePath(path string) *RouteGuide {
 
 	sl[0] = strings.TrimSpace(sl[0])
 	if sl[0] == "" {
-		rg.controllerName = s.emptyControllerName
-		rg.actionName = s.emptyActionName
+		rg.ControllerName = s.emptyControllerName
+		rg.ActionName = s.emptyActionName
 	} else {
-		rg.controllerName = sl[0]
+		rg.ControllerName = sl[0]
 		if len(sl) > 1 {
 			sl[1] = strings.TrimSpace(sl[1])
 			if sl[1] != "" {
-				rg.actionName = sl[1]
+				rg.ActionName = sl[1]
 			} else {
-				rg.actionName = s.emptyActionName
+				rg.ActionName = s.emptyActionName
 			}
 		} else {
-			rg.actionName = s.emptyActionName
+			rg.ActionName = s.emptyActionName
 		}
 	}
 
@@ -346,12 +346,12 @@ func (s *SimpleRouter) checkIfUseDefaultRoute(rg *RouteGuide) bool {
 		return false
 	}
 
-	ri, ok := s.routeTable[rg.controllerName]
+	ri, ok := s.routeTable[rg.ControllerName]
 	if !ok {
 		return true
 	}
 
-	_, ok = ri.actionMap[rg.actionName]
+	_, ok = ri.actionMap[rg.ActionName]
 	if !ok {
 		return true
 	}
