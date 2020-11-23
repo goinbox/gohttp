@@ -1,14 +1,14 @@
 package query
 
 import (
-	"github.com/goinbox/exception"
+	"github.com/goinbox/goerror"
 )
 
 type Value interface {
 	Required() bool
 	Set(str string) error
 	Check() bool
-	Error() *exception.Exception
+	Error() *goerror.Error
 }
 
 type baseValue struct {
@@ -29,6 +29,6 @@ func (b *baseValue) Required() bool {
 	return b.required
 }
 
-func (b *baseValue) Error() *exception.Exception {
-	return exception.New(b.errno, b.msg)
+func (b *baseValue) Error() *goerror.Error {
+	return goerror.New(b.errno, b.msg)
 }
