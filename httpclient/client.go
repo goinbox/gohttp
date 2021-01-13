@@ -56,7 +56,6 @@ func NewClient(config *Config, logger golog.ILogger) *Client {
 		Timeout: config.Timeout,
 
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
 				Timeout:   config.Timeout,
 				KeepAlive: config.KeepAliveTime,
@@ -90,7 +89,14 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 			if err == nil && resp.StatusCode == 200 {
 				break
 			}
+			if resp != nil {
+				_ = resp.Body.Close()
+			}
 		}
+	}
+
+	if resp != nil {
+		defer resp.Body.Close()
 	}
 
 	msg := [][]byte{
