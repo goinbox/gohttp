@@ -17,7 +17,7 @@ import (
 
 type Client struct {
 	config  *Config
-	logger  golog.ILogger
+	logger  golog.Logger
 	traceId []byte
 
 	client *http.Client
@@ -40,7 +40,7 @@ type Response struct {
 	*http.Response
 }
 
-func NewClient(config *Config, logger golog.ILogger) *Client {
+func NewClient(config *Config, logger golog.Logger) *Client {
 	c := &Client{
 		config:  config,
 		traceId: []byte("-"),
