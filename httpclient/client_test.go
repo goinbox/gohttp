@@ -47,7 +47,7 @@ func TestClientPost(t *testing.T) {
 }
 
 func getClient() *Client {
-	w := golog.NewConsoleWriter()
+	w, _ := golog.NewFileWriter("/dev/stdout", 0)
 	logger := golog.NewSimpleLogger(w, golog.NewSimpleFormater())
 
 	config := NewConfig()

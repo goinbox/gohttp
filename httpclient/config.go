@@ -1,8 +1,6 @@
 package httpclient
 
 import (
-	"github.com/goinbox/golog"
-
 	"time"
 )
 
@@ -16,8 +14,6 @@ const (
 )
 
 type Config struct {
-	LogLevel int
-
 	Timeout           time.Duration
 	KeepAliveTime     time.Duration
 	DisableKeepAlives bool
@@ -25,12 +21,13 @@ type Config struct {
 	MaxIdleConnsPerHost int
 	MaxIdleConns        int
 	IdleConnTimeout     time.Duration
+
+	LogRequestBody  bool
+	LogResponseBody bool
 }
 
 func NewConfig() *Config {
 	return &Config{
-		LogLevel: golog.LevelDebug,
-
 		Timeout:           DefaultTimeout,
 		KeepAliveTime:     DefaultKeepaliveTime,
 		DisableKeepAlives: false,
@@ -38,5 +35,8 @@ func NewConfig() *Config {
 		MaxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
 		MaxIdleConns:        DefaultMaxIdleConns,
 		IdleConnTimeout:     DefaultIdleConnTimeout,
+
+		LogRequestBody:  true,
+		LogResponseBody: true,
 	}
 }

@@ -1,24 +1,21 @@
 package httpclient
 
 import (
-	"github.com/goinbox/golog"
-	"github.com/goinbox/gomisc"
-
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/goinbox/golog"
 )
 
 type Client struct {
-	config  *Config
-	logger  golog.Logger
-	traceId []byte
+	config *Config
+	logger golog.Logger
 
 	client *http.Client
 }
@@ -42,8 +39,7 @@ type Response struct {
 
 func NewClient(config *Config, logger golog.Logger) *Client {
 	c := &Client{
-		config:  config,
-		traceId: []byte("-"),
+		config: config,
 	}
 
 	if logger == nil {
@@ -70,13 +66,77 @@ func NewClient(config *Config, logger golog.Logger) *Client {
 	return c
 }
 
-func (c *Client) SetTraceId(traceId []byte) *Client {
-	c.traceId = traceId
+func (c *Client) Do(req *Request, retry int) (*Response, error) {
+	resp, err := c.request(req, retry)
+	fields := []*golog.Field{
+		{
+			Key:   "t",
+			Value: resp.T,
+		},
+	}
+	if resp.Response != nil {
+		defer resp.Body.Close()
+		fields = append(fields, &golog.Field{
+			Key:   "StatusCode",
+			Value: resp.StatusCode,
+		})
+	}
 
-	return c
+	if err != nil {
+		fields = append(fields, &golog.Field{
+			Key:   "Error",
+			Value: err,
+		})
+		c.logger.Error("client request error", fields...)
+		return nil, err
+	}
+
+	resp.Contents, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fields = append(fields, &golog.Field{
+			Key:   "Error",
+			Value: err,
+		})
+		c.logger.Error("read response body error", fields...)
+		return nil, err
+	}
+
+	if c.config.LogResponseBody {
+		fields = append(fields, &golog.Field{
+			Key:   "ResponseBody",
+			Value: string(resp.Contents),
+		})
+	}
+
+	c.logger.Info("response", fields...)
+
+	return resp, nil
 }
 
-func (c *Client) Do(req *Request, retry int) (*Response, error) {
+func (c *Client) request(req *Request, retry int) (*Response, error) {
+	fields := []*golog.Field{
+		{
+			Key:   "Method",
+			Value: req.Method,
+		},
+		{
+			Key:   "Host",
+			Value: req.Host,
+		},
+		{
+			Key:   "Url",
+			Value: req.URL.String(),
+		},
+	}
+	if c.config.LogRequestBody {
+		fields = append(fields, &golog.Field{
+			Key:   "RequestBody",
+			Value: string(req.Body),
+		})
+	}
+
+	c.logger.Info("request", fields...)
+
 	start := time.Now()
 	resp, err := c.client.Do(req.Request)
 	t := time.Since(start)
@@ -95,45 +155,11 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 		}
 	}
 
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-
-	msg := [][]byte{
-		[]byte("Method:" + req.Method),
-		[]byte("Host: " + req.Host),
-		[]byte("Url:" + req.URL.String()),
-		[]byte("Time:" + t.String()),
-	}
-	if err != nil {
-		if resp != nil {
-			msg = append(msg, []byte("StatusCode:"+strconv.Itoa(resp.StatusCode)))
-		}
-		msg = append(msg, []byte("ErrMsg:"+err.Error()))
-		c.logger.Error(c.fmtLog(bytes.Join(msg, []byte("\t"))))
-		return nil, err
-	}
-	msg = append(msg, []byte("StatusCode:"+strconv.Itoa(resp.StatusCode)))
-	_ = c.logger.Log(c.config.LogLevel, c.fmtLog(bytes.Join(msg, []byte("\t"))))
-
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Response{
 		T:        t,
-		Contents: contents,
+		Contents: nil,
 		Response: resp,
-	}, nil
-}
-
-func (c *Client) fmtLog(msg []byte) []byte {
-	return gomisc.AppendBytes(
-		c.traceId, []byte("\t"),
-		[]byte("[HttpClient]\t"),
-		msg,
-	)
+	}, err
 }
 
 func NewRequest(method string, url string, body []byte, ip string, extHeaders map[string]string) (*Request, error) {
