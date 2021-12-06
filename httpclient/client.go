@@ -124,7 +124,7 @@ func (c *Client) request(req *Request, retry int) (*Response, error) {
 			Value: req.Host,
 		},
 		{
-			Key:   "Url",
+			Key:   "url",
 			Value: req.URL.String(),
 		},
 	}
