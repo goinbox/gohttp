@@ -19,9 +19,9 @@ type Action interface {
 	SetValue(key string, value interface{})
 	Value(key string) interface{}
 
-	BeforeRun()
+	Before()
 	Run()
-	AfterRun()
+	After()
 	Destruct()
 }
 
@@ -72,10 +72,10 @@ func (a *BaseAction) Value(key string) interface{} {
 	return a.data[key]
 }
 
-func (a *BaseAction) BeforeRun() {
+func (a *BaseAction) Before() {
 }
 
-func (a *BaseAction) AfterRun() {
+func (a *BaseAction) After() {
 }
 
 func (a *BaseAction) Destruct() {

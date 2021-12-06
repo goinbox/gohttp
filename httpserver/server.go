@@ -3,17 +3,19 @@ package httpserver
 import (
 	"net/http"
 	"reflect"
+
+	router2 "github.com/goinbox/gohttp/router"
 )
 
 type RoutePathFunc func(r *http.Request) string
 
 type Server struct {
-	router Router
+	router router2.Router
 
 	rpf RoutePathFunc
 }
 
-func NewServer(r Router) *Server {
+func NewServer(r router2.Router) *Server {
 	s := &Server{
 		router: r,
 	}
@@ -55,9 +57,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		action.Destruct()
 	}()
 
-	action.BeforeRun()
+	action.Before()
 	action.Run()
-	action.AfterRun()
+	action.After()
 }
 
 func (s *Server) makeArgsValues(r *http.Request, w http.ResponseWriter, args []string) []reflect.Value {

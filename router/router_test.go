@@ -1,4 +1,4 @@
-package httpserver
+package router
 
 import (
 	"fmt"
@@ -28,8 +28,12 @@ func (c *DemoController) GetAction() *getAction {
 	return new(getAction)
 }
 
+type baseAction interface {
+	Name() string
+	Run()
+}
+
 type addAction struct {
-	*BaseAction
 }
 
 func (a *addAction) Name() string {
@@ -41,7 +45,6 @@ func (a *addAction) Run() {
 }
 
 type delAction struct {
-	*BaseAction
 }
 
 func (a *delAction) Name() string {
@@ -53,7 +56,6 @@ func (a *delAction) Run() {
 }
 
 type editAction struct {
-	*BaseAction
 }
 
 func (a *editAction) Name() string {
@@ -65,7 +67,6 @@ func (a *editAction) Run() {
 }
 
 type getAction struct {
-	*BaseAction
 }
 
 func (a *getAction) Name() string {
@@ -95,7 +96,7 @@ func TestRouter(t *testing.T) {
 		t.Log("controller", route.C.Name())
 
 		vs := route.NewActionFunc.Call(nil)
-		action := vs[0].Interface().(Action)
+		action := vs[0].Interface().(baseAction)
 		t.Log("action", action.Name())
 		action.Run()
 	}

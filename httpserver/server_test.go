@@ -1,10 +1,12 @@
 package httpserver
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/goinbox/gohttp/gracehttp"
+	"github.com/goinbox/gohttp/router"
 )
 
 type IndexController struct {
@@ -30,8 +32,20 @@ func (a *IndexAction) Name() string {
 	return "index"
 }
 
+func (a *IndexAction) Before() {
+	a.AppendResponseBody([]byte("before\n"))
+}
+
 func (a *IndexAction) Run() {
-	a.AppendResponseBody([]byte("index action"))
+	a.AppendResponseBody([]byte("index action\n"))
+}
+
+func (a *IndexAction) After() {
+	a.AppendResponseBody([]byte("after\n"))
+}
+
+func (a *IndexAction) Destruct() {
+	fmt.Println("destruct")
 }
 
 type JumpAction struct {
@@ -47,7 +61,7 @@ func (a *JumpAction) Run() {
 }
 
 func TestServer(t *testing.T) {
-	r := NewRouter()
+	r := router.NewRouter()
 	r.MapRouteItems(new(IndexController))
 
 	_ = gracehttp.ListenAndServe(":8010", NewServer(r))
