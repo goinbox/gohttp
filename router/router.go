@@ -49,7 +49,6 @@ type router struct {
 
 	defaultRouteGuide *RouteGuide
 
-	cregex *regexp.Regexp
 	aregex *regexp.Regexp
 
 	routeDefinedList []*routeDefined
@@ -63,7 +62,6 @@ func NewRouter() *router {
 		emptyControllerName: "index",
 		emptyActionName:     "index",
 
-		cregex: regexp.MustCompile("([A-Z][A-Za-z0-9_]*)Controller$"),
 		aregex: regexp.MustCompile("^([A-Z][A-Za-z0-9_]*)Action$"),
 
 		routeTable: make(map[string]*routeItem),
@@ -158,7 +156,7 @@ func (r *router) mapRouteItem(c Controller) {
 func (r *router) getRouteItem(c Controller) *routeItem {
 	v := reflect.ValueOf(c)
 	t := v.Type()
-	controllerName := r.parseControllerName(t.String())
+	controllerName := c.Name()
 	if controllerName == "" {
 		return nil
 	}
@@ -178,15 +176,6 @@ func (r *router) getRouteItem(c Controller) *routeItem {
 
 	return ri
 
-}
-
-func (r *router) parseControllerName(typeString string) string {
-	matches := r.cregex.FindStringSubmatch(typeString)
-	if matches == nil {
-		return ""
-	}
-
-	return strings.ToLower(matches[1])
 }
 
 func (r *router) parseActionName(methodName string) string {

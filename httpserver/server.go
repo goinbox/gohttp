@@ -4,18 +4,18 @@ import (
 	"net/http"
 	"reflect"
 
-	router2 "github.com/goinbox/gohttp/router"
+	"github.com/goinbox/gohttp/router"
 )
 
 type RoutePathFunc func(r *http.Request) string
 
 type Server struct {
-	router router2.Router
+	router router.Router
 
 	rpf RoutePathFunc
 }
 
-func NewServer(r router2.Router) *Server {
+func NewServer(r router.Router) *Server {
 	s := &Server{
 		router: r,
 	}
