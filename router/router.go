@@ -156,7 +156,7 @@ func (r *router) mapRouteItem(c Controller) {
 func (r *router) getRouteItem(c Controller) *routeItem {
 	v := reflect.ValueOf(c)
 	t := v.Type()
-	controllerName := c.Name()
+	controllerName := strings.ToLower(c.Name())
 	if controllerName == "" {
 		return nil
 	}
