@@ -3,7 +3,7 @@ package httpclient
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -11,12 +11,11 @@ import (
 	"time"
 
 	"github.com/goinbox/golog"
+	"github.com/goinbox/pcontext"
 )
 
 type Client struct {
 	config *Config
-	logger golog.Logger
-
 	client *http.Client
 }
 
@@ -37,15 +36,9 @@ type Response struct {
 	*http.Response
 }
 
-func NewClient(config *Config, logger golog.Logger) *Client {
+func NewClient(config *Config) *Client {
 	c := &Client{
 		config: config,
-	}
-
-	if logger == nil {
-		c.logger = new(golog.NoopLogger)
-	} else {
-		c.logger = logger
 	}
 
 	c.client = &http.Client{
@@ -66,8 +59,8 @@ func NewClient(config *Config, logger golog.Logger) *Client {
 	return c
 }
 
-func (c *Client) Do(req *Request, retry int) (*Response, error) {
-	resp, err := c.request(req, retry)
+func (c *Client) Do(ctx pcontext.Context, req *Request, retry int) (*Response, error) {
+	resp, err := c.request(ctx, req, retry)
 	fields := []*golog.Field{
 		{
 			Key:   "t",
@@ -75,29 +68,30 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 		},
 	}
 	if resp.Response != nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		fields = append(fields, &golog.Field{
 			Key:   "StatusCode",
 			Value: resp.StatusCode,
 		})
 	}
 
+	logger := ctx.Logger()
 	if err != nil {
 		fields = append(fields, &golog.Field{
 			Key:   "Error",
 			Value: err,
 		})
-		c.logger.Error("client request error", fields...)
+		logger.Error("client request error", fields...)
 		return nil, err
 	}
 
-	resp.Contents, err = ioutil.ReadAll(resp.Body)
+	resp.Contents, err = io.ReadAll(resp.Body)
 	if err != nil {
 		fields = append(fields, &golog.Field{
 			Key:   "Error",
 			Value: err,
 		})
-		c.logger.Error("read response body error", fields...)
+		logger.Error("read response body error", fields...)
 		return nil, err
 	}
 
@@ -108,12 +102,12 @@ func (c *Client) Do(req *Request, retry int) (*Response, error) {
 		})
 	}
 
-	c.logger.Info("response", fields...)
+	logger.Info("response", fields...)
 
 	return resp, nil
 }
 
-func (c *Client) request(req *Request, retry int) (*Response, error) {
+func (c *Client) request(ctx pcontext.Context, req *Request, retry int) (*Response, error) {
 	fields := []*golog.Field{
 		{
 			Key:   "Method",
@@ -135,7 +129,7 @@ func (c *Client) request(req *Request, retry int) (*Response, error) {
 		})
 	}
 
-	c.logger.Info("request", fields...)
+	ctx.Logger().Info("request", fields...)
 
 	start := time.Now()
 	resp, err := c.client.Do(req.Request)

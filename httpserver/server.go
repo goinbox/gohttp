@@ -1,94 +1,193 @@
 package httpserver
 
 import (
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
-	"reflect"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
 
-	"github.com/goinbox/gohttp/router"
+	"github.com/goinbox/golog"
+	"github.com/goinbox/pcontext"
 )
 
-type RoutePathFunc func(r *http.Request) string
+const (
+	defaultReadTimeout  = time.Second * 60
+	defaultWriteTimeout = time.Second * 60
+
+	environKeyListenerFd = "LISTENER_FD"
+)
+
+type listener struct {
+	net.Listener
+
+	File *os.File
+}
 
 type Server struct {
-	router router.Router
+	*http.Server
 
-	rpf RoutePathFunc
+	ln         *listener
+	shutdownCh chan bool
 }
 
-func NewServer(r router.Router) *Server {
-	s := &Server{
-		router: r,
+func NewServer(addr string, handler http.Handler) *Server {
+	return &Server{
+		Server: &http.Server{
+			Addr:              addr,
+			Handler:           handler,
+			ReadHeaderTimeout: defaultReadTimeout,
+			WriteTimeout:      defaultWriteTimeout,
+		},
+	}
+}
+
+func (s *Server) ListenAndServe(ctx pcontext.Context) error {
+	ln, err := s.createListener(ctx)
+	if err != nil {
+		return fmt.Errorf("createListener error: %w", err)
 	}
 
-	s.rpf = s.routePath
-
-	return s
-}
-
-func (s *Server) SetRoutePathFunc(f RoutePathFunc) *Server {
-	s.rpf = f
-
-	return s
-}
-
-func (s *Server) routePath(r *http.Request) string {
-	return r.URL.Path
-}
-
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	route := s.router.FindRoute(s.rpf(r))
-	if route == nil {
-		http.NotFound(w, r)
-		return
+	ctx.Logger().Notice("ListenAndServe", []*golog.Field{
+		{
+			Key:   "addr",
+			Value: s.Addr,
+		},
+		{
+			Key:   "pid",
+			Value: os.Getpid(),
+		},
+	}...)
+	err = s.serve(ctx, ln)
+	if err != nil {
+		return fmt.Errorf("server.Serve error: %s", err)
 	}
 
-	action := route.NewActionFunc.Call(s.makeArgsValues(r, w, route.Args))[0].Interface().(Action)
+	return nil
+}
 
-	defer func() {
-		if e := recover(); e != nil {
-			a, ok := e.(Action)
-			if !ok {
-				panic(e)
-			}
-			a.Run()
+func (s *Server) serve(ctx pcontext.Context, ln *listener) error {
+	s.ln = ln
+	s.shutdownCh = make(chan bool)
+
+	go s.signalHandler(ctx)
+
+	err := s.Server.Serve(ln)
+	if err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("Server.Serve error: %w", err)
 		}
+	}
 
-		_, _ = w.Write(action.ResponseBody())
-		action.Destruct()
-	}()
+	ctx.Logger().Notice("server shutdown, wait for all connections complete")
+	<-s.shutdownCh
 
-	action.Before()
-	action.Run()
-	action.After()
+	return nil
 }
 
-func (s *Server) makeArgsValues(r *http.Request, w http.ResponseWriter, args []string) []reflect.Value {
-	return []reflect.Value{
-		reflect.ValueOf(r),
-		reflect.ValueOf(w),
-		reflect.ValueOf(args),
+func (s *Server) createListener(ctx pcontext.Context) (*listener, error) {
+	ln, err := s.createListenerFromEnviron()
+	if err != nil {
+		return nil, fmt.Errorf("createListenerFromEnviron error: %w", err)
+	}
+	if ln != nil {
+		ctx.Logger().Debug("createListenerFromEnviron")
+		return ln, nil
+	}
+
+	var lc net.ListenConfig
+	tln, err := lc.Listen(ctx, "tcp", s.Addr)
+	if err != nil {
+		return nil, fmt.Errorf("net.Listen error: %w", err)
+	}
+	f, err := tln.(*net.TCPListener).File()
+	if err != nil {
+		return nil, fmt.Errorf("TCPListener.File error: %w", err)
+	}
+
+	ctx.Logger().Debug("createListenerFromNetAddr")
+	return &listener{
+		Listener: tln,
+		File:     f,
+	}, nil
+}
+
+func (s *Server) createListenerFromEnviron() (*listener, error) {
+	fdStr := os.Getenv(environKeyListenerFd)
+	if fdStr == "" {
+		return nil, nil
+	}
+
+	fd, err := strconv.Atoi(fdStr)
+	if err != nil {
+		return nil, fmt.Errorf("strconv.Atoi error: %w", err)
+	}
+
+	f := os.NewFile(uintptr(fd), "")
+	ln, err := net.FileListener(f)
+	if err != nil {
+		return nil, fmt.Errorf("net.FileListener error: %w", err)
+	}
+
+	return &listener{
+		Listener: ln,
+		File:     f,
+	}, nil
+}
+
+func (s *Server) signalHandler(ctx pcontext.Context) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGUSR2)
+	logger := ctx.Logger()
+
+	for {
+		sig := <-ch
+		logger.Notice(fmt.Sprintf("receive signal %s", sig.String()))
+
+		switch sig {
+		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP:
+			s.shutdown(ctx, ch)
+		case syscall.SIGUSR2:
+			err := s.startNewProcess(ctx)
+			if err != nil {
+				logger.Error("server.startNewProcess error", golog.ErrorField(err))
+			} else {
+				s.shutdown(ctx, ch)
+			}
+		default:
+			continue
+		}
 	}
 }
 
-type redirectAction struct {
-	*BaseAction
+func (s *Server) shutdown(ctx pcontext.Context, ch chan os.Signal) {
+	ctx.Logger().Notice("graceful shutdown")
 
-	code int
-	url  string
+	signal.Stop(ch)
+
+	err := s.Shutdown(ctx)
+	if err != nil {
+		ctx.Logger().Error("server.Shutdown error", golog.ErrorField(err))
+	} else {
+		s.shutdownCh <- true
+	}
 }
 
-func (a *redirectAction) Name() string {
-	return "redirect"
-}
-
-func (a *redirectAction) Run() {
-	http.Redirect(a.ResponseWriter(), a.Request(), a.url, a.code)
-}
-
-func Redirect(r *http.Request, w http.ResponseWriter, code int, url string) {
-	panic(&redirectAction{
-		BaseAction: NewBaseAction(r, w, nil),
-		code:       code,
-		url:        url,
+func (s *Server) startNewProcess(ctx pcontext.Context) error {
+	files := []*os.File{os.Stdin, os.Stdout, os.Stderr, s.ln.File}
+	p, err := os.StartProcess(os.Args[0], os.Args, &os.ProcAttr{
+		Env:   append(os.Environ(), fmt.Sprintf("%s=%d", environKeyListenerFd, len(files)-1)),
+		Files: files,
 	})
+	if err != nil {
+		return fmt.Errorf("os.StartProcess error: %w", err)
+	}
+
+	ctx.Logger().Notice(fmt.Sprintf("new process pid is %d", p.Pid))
+
+	return nil
 }

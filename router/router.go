@@ -57,7 +57,7 @@ type router struct {
 	prpf ParseRoutePathFunc
 }
 
-func NewRouter() *router {
+func NewRouter() Router {
 	r := &router{
 		emptyControllerName: "index",
 		emptyActionName:     "index",

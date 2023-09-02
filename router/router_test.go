@@ -12,28 +12,24 @@ func (c *DemoController) Name() string {
 	return "demo"
 }
 
-func (c *DemoController) AddAction() *addAction {
+func (c *DemoController) AddAction() Action {
 	return new(addAction)
 }
 
-func (c *DemoController) DelAction() *delAction {
+func (c *DemoController) DelAction() Action {
 	return new(delAction)
 }
 
-func (c *DemoController) EditAction() *editAction {
+func (c *DemoController) EditAction() Action {
 	return new(editAction)
 }
 
-func (c *DemoController) GetAction() *getAction {
+func (c *DemoController) GetAction() Action {
 	return new(getAction)
 }
 
-type baseAction interface {
-	Name() string
-	Run()
-}
-
 type addAction struct {
+	BaseAction
 }
 
 func (a *addAction) Name() string {
@@ -45,6 +41,7 @@ func (a *addAction) Run() {
 }
 
 type delAction struct {
+	BaseAction
 }
 
 func (a *delAction) Name() string {
@@ -56,6 +53,7 @@ func (a *delAction) Run() {
 }
 
 type editAction struct {
+	BaseAction
 }
 
 func (a *editAction) Name() string {
@@ -67,6 +65,7 @@ func (a *editAction) Run() {
 }
 
 type getAction struct {
+	BaseAction
 }
 
 func (a *getAction) Name() string {
@@ -96,7 +95,7 @@ func TestRouter(t *testing.T) {
 		t.Log("controller", route.C.Name())
 
 		vs := route.NewActionFunc.Call(nil)
-		action := vs[0].Interface().(baseAction)
+		action := vs[0].Interface().(Action)
 		t.Log("action", action.Name())
 		action.Run()
 	}

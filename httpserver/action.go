@@ -3,11 +3,12 @@ package httpserver
 import (
 	"net/http"
 
+	"github.com/goinbox/gohttp/router"
 	"github.com/goinbox/gomisc"
 )
 
 type Action interface {
-	Name() string
+	router.Action
 
 	Request() *http.Request
 	ResponseWriter() http.ResponseWriter
@@ -18,14 +19,11 @@ type Action interface {
 
 	SetValue(key string, value interface{})
 	Value(key string) interface{}
-
-	Before()
-	Run()
-	After()
-	Destruct()
 }
 
 type BaseAction struct {
+	router.BaseAction
+
 	req        *http.Request
 	respWriter http.ResponseWriter
 
@@ -72,11 +70,25 @@ func (a *BaseAction) Value(key string) interface{} {
 	return a.data[key]
 }
 
-func (a *BaseAction) Before() {
+type redirectAction struct {
+	*BaseAction
+
+	code int
+	url  string
 }
 
-func (a *BaseAction) After() {
+func (a *redirectAction) Name() string {
+	return "redirect"
 }
 
-func (a *BaseAction) Destruct() {
+func (a *redirectAction) Run() {
+	http.Redirect(a.ResponseWriter(), a.Request(), a.url, a.code)
+}
+
+func Redirect(r *http.Request, w http.ResponseWriter, code int, url string) {
+	panic(&redirectAction{
+		BaseAction: NewBaseAction(r, w, nil),
+		code:       code,
+		url:        url,
+	})
 }
