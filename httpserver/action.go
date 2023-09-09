@@ -4,91 +4,60 @@ import (
 	"net/http"
 
 	"github.com/goinbox/gomisc"
+	"github.com/goinbox/pcontext"
 	"github.com/goinbox/router"
 )
 
-type Action interface {
-	router.Action
+type Action[T pcontext.Context] interface {
+	router.Action[T]
+
+	Init(r *http.Request, w http.ResponseWriter, args []string) T
 
 	Request() *http.Request
 	ResponseWriter() http.ResponseWriter
+	Args() []string
 
 	ResponseBody() []byte
 	SetResponseBody(body []byte)
 	AppendResponseBody(body []byte)
-
-	SetValue(key string, value interface{})
-	Value(key string) interface{}
 }
 
-type BaseAction struct {
-	router.BaseAction
+type BaseAction[T pcontext.Context] struct {
+	router.BaseAction[T]
 
 	req        *http.Request
 	respWriter http.ResponseWriter
+	args       []string
 
 	respBody []byte
-	data     map[string]interface{}
-
-	Args []string
 }
 
-func NewBaseAction(r *http.Request, w http.ResponseWriter, args []string) *BaseAction {
-	return &BaseAction{
-		req:        r,
-		respWriter: w,
-		data:       make(map[string]interface{}),
-		Args:       args,
-	}
+func (a *BaseAction[T]) Init(r *http.Request, w http.ResponseWriter, args []string) {
+	a.req = r
+	a.respWriter = w
+	a.args = args
 }
 
-func (a *BaseAction) Request() *http.Request {
+func (a *BaseAction[T]) Request() *http.Request {
 	return a.req
 }
 
-func (a *BaseAction) ResponseWriter() http.ResponseWriter {
+func (a *BaseAction[T]) ResponseWriter() http.ResponseWriter {
 	return a.respWriter
 }
 
-func (a *BaseAction) ResponseBody() []byte {
+func (a *BaseAction[T]) Args() []string {
+	return a.args
+}
+
+func (a *BaseAction[T]) ResponseBody() []byte {
 	return a.respBody
 }
 
-func (a *BaseAction) SetResponseBody(body []byte) {
+func (a *BaseAction[T]) SetResponseBody(body []byte) {
 	a.respBody = body
 }
 
-func (a *BaseAction) AppendResponseBody(body []byte) {
+func (a *BaseAction[T]) AppendResponseBody(body []byte) {
 	a.respBody = gomisc.AppendBytes(a.respBody, body)
-}
-
-func (a *BaseAction) SetValue(key string, value interface{}) {
-	a.data[key] = value
-}
-
-func (a *BaseAction) Value(key string) interface{} {
-	return a.data[key]
-}
-
-type redirectAction struct {
-	*BaseAction
-
-	code int
-	url  string
-}
-
-func (a *redirectAction) Name() string {
-	return "redirect"
-}
-
-func (a *redirectAction) Run() {
-	http.Redirect(a.ResponseWriter(), a.Request(), a.url, a.code)
-}
-
-func Redirect(r *http.Request, w http.ResponseWriter, code int, url string) {
-	panic(&redirectAction{
-		BaseAction: NewBaseAction(r, w, nil),
-		code:       code,
-		url:        url,
-	})
 }

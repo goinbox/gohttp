@@ -10,57 +10,6 @@ import (
 	"github.com/goinbox/router"
 )
 
-type IndexController struct {
-}
-
-func (c *IndexController) Name() string {
-	return "index"
-}
-
-func (c *IndexController) IndexAction(r *http.Request, w http.ResponseWriter, args []string) *IndexAction {
-	return &IndexAction{NewBaseAction(r, w, args)}
-}
-
-func (c *IndexController) JumpAction(r *http.Request, w http.ResponseWriter, args []string) *JumpAction {
-	return &JumpAction{NewBaseAction(r, w, args)}
-}
-
-type IndexAction struct {
-	*BaseAction
-}
-
-func (a *IndexAction) Name() string {
-	return "index"
-}
-
-func (a *IndexAction) Before() {
-	a.AppendResponseBody([]byte("before\n"))
-}
-
-func (a *IndexAction) Run() {
-	a.AppendResponseBody([]byte("index action\n"))
-}
-
-func (a *IndexAction) After() {
-	a.AppendResponseBody([]byte("after\n"))
-}
-
-func (a *IndexAction) Destruct() {
-	fmt.Println("destruct")
-}
-
-type JumpAction struct {
-	*BaseAction
-}
-
-func (a *JumpAction) Name() string {
-	return "jump"
-}
-
-func (a *JumpAction) Run() {
-	Redirect(a.Request(), a.ResponseWriter(), 302, "https://github.com/goinbox")
-}
-
 func runHandler(handler http.Handler, target string) (http.Header, []byte, error) {
 	req := httptest.NewRequest(http.MethodPost, target, nil)
 
@@ -76,10 +25,11 @@ func runHandler(handler http.Handler, target string) (http.Header, []byte, error
 
 func TestHandler(t *testing.T) {
 	r := router.NewRouter()
-	r.MapRouteItems(new(IndexController))
+	r.MapRouteItems(new(indexController))
 
 	for _, path := range []string{"index", "jump"} {
-		header, content, err := runHandler(NewHandler(r), fmt.Sprintf("http://127.0.0.1/index/%s", path))
+		header, content, err := runHandler(NewHandler[*context](r),
+			fmt.Sprintf("http://127.0.0.1/index/%s", path))
 		t.Log(path, err, header, string(content))
 	}
 }

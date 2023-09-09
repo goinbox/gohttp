@@ -2,21 +2,21 @@ package httpserver
 
 import (
 	"net/http"
-	"reflect"
 
+	"github.com/goinbox/pcontext"
 	"github.com/goinbox/router"
 )
 
 type RoutePathFunc func(r *http.Request) string
 
-type handler struct {
+type handler[T pcontext.Context] struct {
 	router router.Router
 
 	rpf RoutePathFunc
 }
 
-func NewHandler(r router.Router) http.Handler {
-	s := &handler{
+func NewHandler[T pcontext.Context](r router.Router) http.Handler {
+	s := &handler[T]{
 		router: r,
 	}
 
@@ -25,47 +25,47 @@ func NewHandler(r router.Router) http.Handler {
 	return s
 }
 
-func (s *handler) SetRoutePathFunc(f RoutePathFunc) *handler {
-	s.rpf = f
+func (h *handler[T]) SetRoutePathFunc(f RoutePathFunc) *handler[T] {
+	h.rpf = f
 
-	return s
+	return h
 }
 
-func (s *handler) routePath(r *http.Request) string {
+func (h *handler[T]) routePath(r *http.Request) string {
 	return r.URL.Path
 }
 
-func (s *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	route := s.router.FindRoute(s.rpf(r))
+func (h *handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	route := h.router.FindRoute(h.rpf(r))
 	if route == nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	action := route.NewActionFunc.Call(s.makeArgsValues(r, w, route.Args))[0].Interface().(Action)
+	action := route.NewActionFunc.Call(nil)[0].Interface().(Action[T])
+	ctx := action.Init(r, w, route.Args)
 
 	defer func() {
 		if e := recover(); e != nil {
-			a, ok := e.(Action)
+			var ok bool
+			action, ok = e.(Action[T])
 			if !ok {
 				panic(e)
 			}
-			a.Run()
+
+			ctx = action.Init(r, w, route.Args)
+			h.runAction(ctx, action)
 		}
 
 		_, _ = w.Write(action.ResponseBody())
-		action.Destruct()
+		action.Destruct(ctx)
 	}()
 
-	action.Before()
-	action.Run()
-	action.After()
+	h.runAction(ctx, action)
 }
 
-func (s *handler) makeArgsValues(r *http.Request, w http.ResponseWriter, args []string) []reflect.Value {
-	return []reflect.Value{
-		reflect.ValueOf(r),
-		reflect.ValueOf(w),
-		reflect.ValueOf(args),
-	}
+func (h *handler[T]) runAction(ctx T, action Action[T]) {
+	action.Before(ctx)
+	action.Run(ctx)
+	action.After(ctx)
 }
