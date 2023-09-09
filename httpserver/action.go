@@ -3,8 +3,8 @@ package httpserver
 import (
 	"net/http"
 
-	"github.com/goinbox/gohttp/router"
 	"github.com/goinbox/gomisc"
+	"github.com/goinbox/router"
 )
 
 type Action interface {

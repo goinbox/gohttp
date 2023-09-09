@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/goinbox/gohttp/router"
+	"github.com/goinbox/router"
 )
 
 type RoutePathFunc func(r *http.Request) string

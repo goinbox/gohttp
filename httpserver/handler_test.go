@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/goinbox/gohttp/router"
+	"github.com/goinbox/router"
 )
 
 type IndexController struct {
@@ -78,9 +78,8 @@ func TestHandler(t *testing.T) {
 	r := router.NewRouter()
 	r.MapRouteItems(new(IndexController))
 
-	handler := NewHandler(r)
 	for _, path := range []string{"index", "jump"} {
-		header, content, err := runHandler(handler, fmt.Sprintf("http://127.0.0.1/index/%s", path))
+		header, content, err := runHandler(NewHandler(r), fmt.Sprintf("http://127.0.0.1/index/%s", path))
 		t.Log(path, err, header, string(content))
 	}
 }
