@@ -1,10 +1,13 @@
 package httpserver
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/goinbox/pcontext"
 	"github.com/goinbox/router"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type RoutePathFunc func(r *http.Request) string
@@ -13,6 +16,7 @@ type handler[T pcontext.Context] struct {
 	router router.Router
 
 	rpf RoutePathFunc
+	stf pcontext.StartTraceFunc[T]
 }
 
 func NewHandler[T pcontext.Context](r router.Router) http.Handler {
@@ -27,6 +31,12 @@ func NewHandler[T pcontext.Context](r router.Router) http.Handler {
 
 func (h *handler[T]) SetRoutePathFunc(f RoutePathFunc) *handler[T] {
 	h.rpf = f
+
+	return h
+}
+
+func (h *handler[T]) SetStartTraceFunc(f pcontext.StartTraceFunc[T]) *handler[T] {
+	h.stf = f
 
 	return h
 }
@@ -57,14 +67,29 @@ func (h *handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, _ = w.Write(action.ResponseBody())
-		action.Destruct(ctx)
 	}()
 
 	h.runAction(ctx, action)
 }
 
 func (h *handler[T]) runAction(ctx T, action Action[T]) {
-	action.Before(ctx)
-	action.Run(ctx)
-	action.After(ctx)
+	var err error
+
+	if h.stf != nil {
+		var span trace.Span
+		ctx, span = h.stf(ctx, fmt.Sprintf("RunAction %s", action.Name()))
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+			span.End()
+		}()
+	}
+
+	err = action.Before(ctx)
+	if err == nil {
+		err = action.Run(ctx)
+	}
+	action.After(ctx, err)
 }

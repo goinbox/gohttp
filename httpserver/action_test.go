@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/goinbox/golog"
@@ -34,8 +33,9 @@ func (a *redirectAction) Name() string {
 	return "redirect"
 }
 
-func (a *redirectAction) Run(ctx *context) {
+func (a *redirectAction) Run(ctx *context) error {
 	http.Redirect(a.ResponseWriter(), a.Request(), a.url, a.code)
+	return nil
 }
 
 type context struct {
@@ -67,20 +67,18 @@ func (a *indexAction) Name() string {
 	return "index"
 }
 
-func (a *indexAction) Before(ctx *context) {
+func (a *indexAction) Before(ctx *context) error {
 	a.AppendResponseBody([]byte("before index\n"))
+	return nil
 }
 
-func (a *indexAction) Run(ctx *context) {
+func (a *indexAction) Run(ctx *context) error {
 	a.AppendResponseBody([]byte("index action\n"))
+	return nil
 }
 
-func (a *indexAction) After(ctx *context) {
+func (a *indexAction) After(ctx *context, err error) {
 	a.AppendResponseBody([]byte("after index\n"))
-}
-
-func (a *indexAction) Destruct(ctx *context) {
-	fmt.Println("destruct index")
 }
 
 type jumpAction struct {
@@ -91,18 +89,12 @@ func (a *jumpAction) Name() string {
 	return "jump"
 }
 
-func (a *jumpAction) Before(ctx *context) {
+func (a *jumpAction) Before(ctx *context) error {
 	a.AppendResponseBody([]byte("before jump\n"))
+	return nil
 }
 
-func (a *jumpAction) Run(ctx *context) {
+func (a *jumpAction) Run(ctx *context) error {
 	a.redirect(302, "https://github.com/goinbox")
-}
-
-func (a *jumpAction) After(ctx *context) {
-	a.AppendResponseBody([]byte("after jump\n"))
-}
-
-func (a *jumpAction) Destruct(ctx *context) {
-	fmt.Println("destruct jump")
+	return nil
 }
