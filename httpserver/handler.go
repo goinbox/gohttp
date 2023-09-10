@@ -53,7 +53,6 @@ func (h *handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				panic(e)
 			}
 
-			ctx = action.Init(r, w, route.Args)
 			h.runAction(ctx, action)
 		}
 

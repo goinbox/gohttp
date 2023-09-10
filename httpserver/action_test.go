@@ -23,6 +23,21 @@ func (c *indexController) JumpAction() *jumpAction {
 	return &jumpAction{}
 }
 
+type redirectAction struct {
+	baseAction
+
+	code int
+	url  string
+}
+
+func (a *redirectAction) Name() string {
+	return "redirect"
+}
+
+func (a *redirectAction) Run(ctx *context) {
+	http.Redirect(a.ResponseWriter(), a.Request(), a.url, a.code)
+}
+
 type context struct {
 	pcontext.Context
 }
@@ -34,6 +49,14 @@ type baseAction struct {
 func (a *baseAction) Init(r *http.Request, w http.ResponseWriter, args []string) *context {
 	a.BaseAction.Init(r, w, args)
 	return &context{pcontext.NewSimpleContext(&golog.NoopLogger{})}
+}
+
+func (a *baseAction) redirect(code int, url string) {
+	panic(&redirectAction{
+		baseAction: *a,
+		code:       code,
+		url:        url,
+	})
 }
 
 type indexAction struct {
@@ -73,7 +96,7 @@ func (a *jumpAction) Before(ctx *context) {
 }
 
 func (a *jumpAction) Run(ctx *context) {
-	redirect(302, "https://github.com/goinbox")
+	a.redirect(302, "https://github.com/goinbox")
 }
 
 func (a *jumpAction) After(ctx *context) {
@@ -82,26 +105,4 @@ func (a *jumpAction) After(ctx *context) {
 
 func (a *jumpAction) Destruct(ctx *context) {
 	fmt.Println("destruct jump")
-}
-
-type redirectAction struct {
-	baseAction
-
-	code int
-	url  string
-}
-
-func (a *redirectAction) Name() string {
-	return "redirect"
-}
-
-func (a *redirectAction) Run(ctx *context) {
-	http.Redirect(a.ResponseWriter(), a.Request(), a.url, a.code)
-}
-
-func redirect(code int, url string) {
-	panic(&redirectAction{
-		code: code,
-		url:  url,
-	})
 }
