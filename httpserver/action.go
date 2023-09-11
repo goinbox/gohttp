@@ -5,13 +5,16 @@ import (
 
 	"github.com/goinbox/gomisc"
 	"github.com/goinbox/pcontext"
-	"github.com/goinbox/router"
 )
 
 type Action[T pcontext.Context] interface {
-	router.Action[T]
+	Name() string
 
 	Init(r *http.Request, w http.ResponseWriter, args []string) T
+
+	Before(ctx T) error
+	Run(ctx T) error
+	After(ctx T, err error)
 
 	Request() *http.Request
 	ResponseWriter() http.ResponseWriter
@@ -23,8 +26,6 @@ type Action[T pcontext.Context] interface {
 }
 
 type BaseAction[T pcontext.Context] struct {
-	router.BaseAction[T]
-
 	req        *http.Request
 	respWriter http.ResponseWriter
 	args       []string
@@ -36,6 +37,13 @@ func (a *BaseAction[T]) Init(r *http.Request, w http.ResponseWriter, args []stri
 	a.req = r
 	a.respWriter = w
 	a.args = args
+}
+
+func (a *BaseAction[T]) Before(ctx T) error {
+	return nil
+}
+
+func (a *BaseAction[T]) After(ctx T, err error) {
 }
 
 func (a *BaseAction[T]) Request() *http.Request {
