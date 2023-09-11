@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/goinbox/pcontext"
+	"github.com/goinbox/ptrace"
 	"github.com/goinbox/router"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -12,15 +13,15 @@ import (
 
 type RoutePathFunc func(r *http.Request) string
 
-type handler[T pcontext.Context] struct {
+type Handler[T pcontext.Context] struct {
 	router router.Router
 
 	rpf RoutePathFunc
-	stf pcontext.StartTraceFunc[T]
+	stf ptrace.StartTraceFunc[T]
 }
 
-func NewHandler[T pcontext.Context](r router.Router) http.Handler {
-	s := &handler[T]{
+func NewHandler[T pcontext.Context](r router.Router) *Handler[T] {
+	s := &Handler[T]{
 		router: r,
 	}
 
@@ -29,23 +30,23 @@ func NewHandler[T pcontext.Context](r router.Router) http.Handler {
 	return s
 }
 
-func (h *handler[T]) SetRoutePathFunc(f RoutePathFunc) *handler[T] {
+func (h *Handler[T]) SetRoutePathFunc(f RoutePathFunc) *Handler[T] {
 	h.rpf = f
 
 	return h
 }
 
-func (h *handler[T]) SetStartTraceFunc(f pcontext.StartTraceFunc[T]) *handler[T] {
+func (h *Handler[T]) SetStartTraceFunc(f ptrace.StartTraceFunc[T]) *Handler[T] {
 	h.stf = f
 
 	return h
 }
 
-func (h *handler[T]) routePath(r *http.Request) string {
+func (h *Handler[T]) routePath(r *http.Request) string {
 	return r.URL.Path
 }
 
-func (h *handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	route := h.router.FindRoute(h.rpf(r))
 	if route == nil {
 		http.NotFound(w, r)
@@ -72,7 +73,7 @@ func (h *handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.runAction(ctx, action)
 }
 
-func (h *handler[T]) runAction(ctx T, action Action[T]) {
+func (h *Handler[T]) runAction(ctx T, action Action[T]) {
 	var err error
 
 	if h.stf != nil {
