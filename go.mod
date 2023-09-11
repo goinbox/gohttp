@@ -1,4 +1,4 @@
-module github.com/goinbox/gohttp
+module github.com/goinbox/gohttp/v6
 
 go 1.20
 
