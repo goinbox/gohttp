@@ -32,7 +32,7 @@ type Server struct {
 	*http.Server
 
 	ln         *listener
-	shutdownCh chan bool
+	shutdownCh chan struct{}
 }
 
 func NewServer(addr string, handler http.Handler) *Server {
@@ -72,7 +72,7 @@ func (s *Server) ListenAndServe(ctx pcontext.Context) error {
 
 func (s *Server) serve(ctx pcontext.Context, ln *listener) error {
 	s.ln = ln
-	s.shutdownCh = make(chan bool)
+	s.shutdownCh = make(chan struct{})
 
 	go s.signalHandler(ctx)
 
@@ -173,7 +173,7 @@ func (s *Server) shutdown(ctx pcontext.Context, ch chan os.Signal) {
 	if err != nil {
 		ctx.Logger().Error("server.Shutdown error", golog.ErrorField(err))
 	} else {
-		s.shutdownCh <- true
+		close(s.shutdownCh)
 	}
 }
 
