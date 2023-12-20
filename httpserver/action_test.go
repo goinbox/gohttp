@@ -39,7 +39,7 @@ func (a *redirectAction) Run(ctx *context) error {
 }
 
 type context struct {
-	pcontext.Context
+	BaseContext
 }
 
 type baseAction struct {
@@ -48,7 +48,9 @@ type baseAction struct {
 
 func (a *baseAction) Init(r *http.Request, w http.ResponseWriter, args []string) *context {
 	a.BaseAction.Init(r, w, args)
-	return &context{pcontext.NewSimpleContext(&golog.NoopLogger{})}
+	return &context{BaseContext{
+		Context: pcontext.NewSimpleContext(nil, &golog.NoopLogger{}),
+	}}
 }
 
 func (a *baseAction) redirect(code int, url string) {

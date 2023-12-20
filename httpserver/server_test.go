@@ -18,7 +18,7 @@ func TestServer(t *testing.T) {
 			Key:   "pid",
 			Value: os.Getpid(),
 		})
-	ctx := pcontext.NewSimpleContext(logger)
+	ctx := pcontext.NewSimpleContext(nil, logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

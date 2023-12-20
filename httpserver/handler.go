@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/goinbox/pcontext"
 	"github.com/goinbox/ptrace"
 	"github.com/goinbox/router"
 	"go.opentelemetry.io/otel/codes"
@@ -13,14 +12,14 @@ import (
 
 type RoutePathFunc func(r *http.Request) string
 
-type Handler[T pcontext.Context] struct {
+type Handler[T Context] struct {
 	router router.Router
 
 	rpf RoutePathFunc
 	stf ptrace.StartTraceFunc[T]
 }
 
-func NewHandler[T pcontext.Context](r router.Router) *Handler[T] {
+func NewHandler[T Context](r router.Router) *Handler[T] {
 	s := &Handler[T]{
 		router: r,
 	}
@@ -55,6 +54,8 @@ func (h *Handler[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	action := route.NewActionFunc.Call(nil)[0].Interface().(Action[T])
 	ctx := action.Init(r, w, route.Args)
+	ctx.SetController(route.C.Name())
+	ctx.SetAction(action.Name())
 
 	defer func() {
 		if e := recover(); e != nil {

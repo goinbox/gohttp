@@ -4,10 +4,9 @@ import (
 	"net/http"
 
 	"github.com/goinbox/gomisc"
-	"github.com/goinbox/pcontext"
 )
 
-type Action[T pcontext.Context] interface {
+type Action[T Context] interface {
 	Name() string
 
 	Init(r *http.Request, w http.ResponseWriter, args []string) T
@@ -25,7 +24,7 @@ type Action[T pcontext.Context] interface {
 	AppendResponseBody(body []byte)
 }
 
-type BaseAction[T pcontext.Context] struct {
+type BaseAction[T Context] struct {
 	req        *http.Request
 	respWriter http.ResponseWriter
 	args       []string
