@@ -15,7 +15,7 @@ var client *Client
 func init() {
 	w, _ := golog.NewFileWriter("/dev/stdout", 0)
 	logger := golog.NewSimpleLogger(w, golog.NewSimpleFormater())
-	ctx = pcontext.NewSimpleContext(logger)
+	ctx = pcontext.NewSimpleContext(nil, logger)
 
 	config := NewConfig()
 	config.Timeout = time.Second * 1
